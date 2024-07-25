@@ -89,8 +89,8 @@ class GitHubApiHandler:
 # Define the main function
 def main():
     try:
-        input_csv_path = 'input2.csv'
-        output_csv_path = 'output2.csv'
+        input_csv_path = 'input1.csv'
+        output_csv_path = 'output1.csv'
         
         api_keys = os.environ['GITHUB_API_KEYS'].split(',')
         
