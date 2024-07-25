@@ -92,7 +92,7 @@ def main():
         input_csv_path = 'input1.csv'
         output_csv_path = 'output1.csv'
         
-        api_keys = os.environ['GITHUB_API_KEYS'].split(',')
+        api_keys = os.environ['MY_GITHUB_API_KEYS'].split(',')
         
         github_api_handler = GitHubApiHandler(api_keys)
         
