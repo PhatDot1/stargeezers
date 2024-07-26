@@ -3,6 +3,7 @@ import os
 import requests
 import re
 import pandas as pd
+import time
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
@@ -40,6 +41,7 @@ class GitHubApiHandler:
         self.current_key_index = 0
         self.request_count = 0
         self.max_requests_per_key = 3650
+        self.failed_attempts = 0
 
     def get_headers(self):
         return {'Authorization': f'token {self.api_keys[self.current_key_index]}'}
@@ -50,7 +52,12 @@ class GitHubApiHandler:
         if remaining_requests < 10:
             self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
             self.request_count = 0
+            self.failed_attempts += 1
             logger.info(f"Switched to new API key: {self.current_key_index + 1}")
+            if self.failed_attempts >= 18:
+                logger.info("API rate limit hit for all keys. Waiting for 1 hour and 5 minutes.")
+                time.sleep(3900)  # Wait for 1 hour and 5 minutes
+                self.failed_attempts = 0
 
     def get_remaining_requests(self):
         headers = self.get_headers()
@@ -98,28 +105,37 @@ def main():
         
         logger.info("Reading input CSV file...")
         input_df = pd.read_csv(input_csv_path)
-        output_data = []
+        
+        if os.path.exists(output_csv_path):
+            output_df = pd.read_csv(output_csv_path)
+            processed_profiles = set(output_df['Profile URL'])
+        else:
+            output_df = pd.DataFrame(columns=['Username', 'User ID', 'Profile URL', 'Email'])
+            processed_profiles = set()
 
         for _, row in input_df.iterrows():
+            profile_url = row['Profile URL']
+            if profile_url in processed_profiles:
+                continue
+
             username = row['Username']
             user_id = row['User ID']
-            profile_url = row['Profile URL']
             logger.info(f"Processing {username} ({profile_url})")
 
             try:
                 email = github_api_handler.get_user_info_from_github_api(profile_url)
                 if email:
-                    output_data.append({
+                    output_df = output_df.append({
                         'Username': username,
                         'User ID': user_id,
                         'Profile URL': profile_url,
                         'Email': email
-                    })
+                    }, ignore_index=True)
+                    output_df.to_csv(output_csv_path, index=False)
+                    processed_profiles.add(profile_url)
             except Exception as e:
                 logger.error(f"An error occurred while processing {profile_url}: {e}")
 
-        output_df = pd.DataFrame(output_data)
-        output_df.to_csv(output_csv_path, index=False)
         logger.info(f"Successfully written output to {output_csv_path}")
 
     except Exception as e:
