@@ -2,7 +2,7 @@ name: Run GitHub Email Scraper
 
 on:
   schedule:
-    - cron: '*/6 * * * *'
+    - cron: '*/99999 * * * *'
   workflow_dispatch:
 
 jobs:
