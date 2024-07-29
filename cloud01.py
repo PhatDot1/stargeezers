@@ -113,6 +113,7 @@ def main():
             output_df = pd.DataFrame(columns=['Username', 'User ID', 'Profile URL', 'Email'])
             processed_profiles = set()
 
+        new_rows = []
         for _, row in input_df.iterrows():
             profile_url = row['Profile URL']
             if profile_url in processed_profiles:
@@ -125,16 +126,20 @@ def main():
             try:
                 email = github_api_handler.get_user_info_from_github_api(profile_url)
                 if email:
-                    output_df = output_df.append({
+                    new_rows.append({
                         'Username': username,
                         'User ID': user_id,
                         'Profile URL': profile_url,
                         'Email': email
-                    }, ignore_index=True)
-                    output_df.to_csv(output_csv_path, index=False)
+                    })
                     processed_profiles.add(profile_url)
             except Exception as e:
                 logger.error(f"An error occurred while processing {profile_url}: {e}")
+
+        if new_rows:
+            new_df = pd.DataFrame(new_rows)
+            output_df = pd.concat([output_df, new_df], ignore_index=True)
+            output_df.to_csv(output_csv_path, index=False)
 
         logger.info(f"Successfully written output to {output_csv_path}")
 
