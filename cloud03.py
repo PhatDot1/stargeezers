@@ -6,6 +6,7 @@ import pandas as pd
 import time
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -98,6 +99,7 @@ def main():
     try:
         input_csv_path = 'input3.csv'
         output_csv_path = 'output3.csv'
+        last_save_time = datetime.now()
         
         api_keys = os.environ['MY_GITHUB_API_KEYS'].split(',')
         
@@ -114,9 +116,9 @@ def main():
             processed_profiles = set()
 
         new_rows = []
-        for _, row in input_df.iterrows():
+        for index, row in input_df.iterrows():
             profile_url = row['Profile URL']
-            if profile_url in processed_profiles:
+            if row.get('Status') == 'Done' or profile_url in processed_profiles:
                 continue
 
             username = row['Username']
@@ -133,13 +135,28 @@ def main():
                         'Email': email
                     })
                     processed_profiles.add(profile_url)
+                    input_df.at[index, 'Status'] = 'Done'  # Mark as done
+
+                # Save progress every 30 minutes
+                if (datetime.now() - last_save_time) > timedelta(minutes=30):
+                    logger.info("Saving progress...")
+                    if new_rows:
+                        new_df = pd.DataFrame(new_rows)
+                        output_df = pd.concat([output_df, new_df], ignore_index=True)
+                        output_df.to_csv(output_csv_path, index=False)
+                        new_rows.clear()  # Clear the list after saving
+                    input_df.to_csv(input_csv_path, index=False)
+                    last_save_time = datetime.now()
+                    
             except Exception as e:
                 logger.error(f"An error occurred while processing {profile_url}: {e}")
 
+        # Final save after loop
         if new_rows:
             new_df = pd.DataFrame(new_rows)
             output_df = pd.concat([output_df, new_df], ignore_index=True)
             output_df.to_csv(output_csv_path, index=False)
+        input_df.to_csv(input_csv_path, index=False)
 
         logger.info(f"Successfully written output to {output_csv_path}")
 
