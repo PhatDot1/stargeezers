@@ -90,7 +90,7 @@ class GitHubApiHandler:
     def get_email_from_readme(self, username, headers):
         url = f'https://raw.githubusercontent.com/{username}/{username}/main/README.md'
         response = requests.get(url, headers=headers)
-        if response.status_code == 200):
+        if response.status_code == 200:
             return extract_email(response.text)
         return None
 
