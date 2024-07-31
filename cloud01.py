@@ -97,6 +97,13 @@ class GitHubApiHandler:
 # Define the main function
 def main():
     try:
+        logger.info(f"Current working directory: {os.getcwd()}")
+
+        # Test if we can create a file
+        with open('test_output.txt', 'w') as f:
+            f.write("Test write to ensure permissions and path are correct.")
+        logger.info("Created test_output.txt as a permissions check.")
+
         input_csv_path = 'input1.csv'
         output_csv_path = 'output1.csv'
         start_time = datetime.now()
