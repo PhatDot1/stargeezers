@@ -117,6 +117,7 @@ def main():
 
         # Prepare the output CSV if it doesn't exist
         if not os.path.exists(output_csv_path):
+            logger.info(f"Creating {output_csv_path} as it does not exist.")
             output_df = pd.DataFrame(columns=input_df.columns)
             output_df.to_csv(output_csv_path, index=False)
 
@@ -145,11 +146,13 @@ def main():
                     # Append the row with email to output1.csv
                     output_row = input_df.loc[index]
                     output_row.to_frame().T.to_csv(output_csv_path, mode='a', header=False, index=False)
+                    logger.info(f"Appended data to {output_csv_path} for {username}.")
 
                 else:
                     logger.info(f"No email found for {username}")
 
                 # Save the progress immediately after each row
+                logger.info(f"Updating {input_csv_path} with the latest data.")
                 input_df.to_csv(input_csv_path, index=False)
 
             except Exception as e:
