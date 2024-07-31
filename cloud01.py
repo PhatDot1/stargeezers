@@ -64,7 +64,7 @@ class GitHubApiHandler:
         headers = self.get_headers()
         url = 'https://api.github.com/rate_limit'
         response = requests_retry_session().get(url, headers=headers)
-        if response.status_code == 200):
+        if response.status_code == 200:
             rate_limit_data = response.json()
             remaining = rate_limit_data['rate']['remaining']
             return remaining
@@ -90,7 +90,7 @@ class GitHubApiHandler:
     def get_email_from_readme(self, username, headers):
         url = f'https://raw.githubusercontent.com/{username}/{username}/main/README.md'
         response = requests.get(url, headers=headers)
-        if response.status_code == 200):
+        if response.status_code == 200:
             return extract_email(response.text)
         return None
 
