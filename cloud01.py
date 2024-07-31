@@ -64,7 +64,7 @@ class GitHubApiHandler:
         headers = self.get_headers()
         url = 'https://api.github.com/rate_limit'
         response = requests_retry_session().get(url, headers=headers)
-        if response.status_code == 200):
+        if response.status_code == 200:
             rate_limit_data = response.json()
             remaining = rate_limit_data['rate']['remaining']
             return remaining
