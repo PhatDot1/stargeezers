@@ -64,7 +64,7 @@ class GitHubApiHandler:
         headers = self.get_headers()
         url = 'https://api.github.com/rate_limit'
         response = requests_retry_session().get(url, headers=headers)
-        if response.status_code == 200:
+        if response.status_code == 200):
             rate_limit_data = response.json()
             remaining = rate_limit_data['rate']['remaining']
             return remaining
@@ -90,7 +90,7 @@ class GitHubApiHandler:
     def get_email_from_readme(self, username, headers):
         url = f'https://raw.githubusercontent.com/{username}/{username}/main/README.md'
         response = requests.get(url, headers=headers)
-        if response.status_code == 200:
+        if response.status_code == 200):
             return extract_email(response.text)
         return None
 
@@ -98,6 +98,7 @@ class GitHubApiHandler:
 def main():
     try:
         input_csv_path = 'input1.csv'
+        output_csv_path = 'output1.csv'
         start_time = datetime.now()
         max_runtime = timedelta(hours=5, minutes=50)  # Set maximum runtime
 
@@ -113,6 +114,11 @@ def main():
             input_df['Status'] = ''
         if 'Email' not in input_df.columns:
             input_df['Email'] = ''
+
+        # Prepare the output CSV if it doesn't exist
+        if not os.path.exists(output_csv_path):
+            output_df = pd.DataFrame(columns=input_df.columns)
+            output_df.to_csv(output_csv_path, index=False)
 
         for index, row in input_df.iterrows():
             # Check if the maximum runtime has been reached
@@ -135,6 +141,10 @@ def main():
                     input_df.at[index, 'Email'] = email
                     input_df.at[index, 'Status'] = 'Done'  # Mark as done
                     logger.info(f"Appended email for {username}: {email}")
+
+                    # Append the row with email to output1.csv
+                    output_row = input_df.loc[index]
+                    output_row.to_frame().T.to_csv(output_csv_path, mode='a', header=False, index=False)
 
                 else:
                     logger.info(f"No email found for {username}")
