@@ -98,29 +98,33 @@ class GitHubApiHandler:
 def main():
     try:
         input_csv_path = 'input3.csv'
-        output_csv_path = 'output3.csv'
-        last_save_time = datetime.now()
-        
+        start_time = datetime.now()
+        max_runtime = timedelta(hours=5, minutes=50)  # Set maximum runtime
+
         api_keys = os.environ['MY_GITHUB_API_KEYS'].split(',')
-        
+
         github_api_handler = GitHubApiHandler(api_keys)
-        
+
         logger.info("Reading input CSV file...")
         input_df = pd.read_csv(input_csv_path)
-        
-        if os.path.exists(output_csv_path):
-            output_df = pd.read_csv(output_csv_path)
-            processed_profiles = set(output_df['Profile URL'])
-        else:
-            output_df = pd.DataFrame(columns=['Username', 'User ID', 'Profile URL', 'Email'])
-            processed_profiles = set()
 
-        new_rows = []
+        # Add the 'Status' and 'Email' columns if they do not exist
+        if 'Status' not in input_df.columns:
+            input_df['Status'] = ''
+        if 'Email' not in input_df.columns:
+            input_df['Email'] = ''
+
         for index, row in input_df.iterrows():
-            profile_url = row['Profile URL']
-            if row.get('Status') == 'Done' or profile_url in processed_profiles:
+            # Check if the maximum runtime has been reached
+            if datetime.now() - start_time > max_runtime:
+                logger.info("Maximum runtime reached. Saving progress and exiting...")
+                input_df.to_csv(input_csv_path, index=False)
+                return
+
+            if row['Status'] == 'Done':
                 continue
 
+            profile_url = row['Profile URL']
             username = row['Username']
             user_id = row['User ID']
             logger.info(f"Processing {username} ({profile_url})")
@@ -128,37 +132,22 @@ def main():
             try:
                 email = github_api_handler.get_user_info_from_github_api(profile_url)
                 if email:
-                    new_rows.append({
-                        'Username': username,
-                        'User ID': user_id,
-                        'Profile URL': profile_url,
-                        'Email': email
-                    })
-                    processed_profiles.add(profile_url)
+                    input_df.at[index, 'Email'] = email
                     input_df.at[index, 'Status'] = 'Done'  # Mark as done
+                    logger.info(f"Appended email for {username}: {email}")
+                else:
+                    logger.info(f"No email found for {username}")
 
-                # Save progress every 30 minutes
-                if (datetime.now() - last_save_time) > timedelta(minutes=30):
-                    logger.info("Saving progress...")
-                    if new_rows:
-                        new_df = pd.DataFrame(new_rows)
-                        output_df = pd.concat([output_df, new_df], ignore_index=True)
-                        output_df.to_csv(output_csv_path, index=False)
-                        new_rows.clear()  # Clear the list after saving
-                    input_df.to_csv(input_csv_path, index=False)
-                    last_save_time = datetime.now()
-                    
+                # Save the progress immediately after each row
+                input_df.to_csv(input_csv_path, index=False)
+
             except Exception as e:
                 logger.error(f"An error occurred while processing {profile_url}: {e}")
+                continue
 
-        # Final save after loop
-        if new_rows:
-            new_df = pd.DataFrame(new_rows)
-            output_df = pd.concat([output_df, new_df], ignore_index=True)
-            output_df.to_csv(output_csv_path, index=False)
+        # Final save after loop completion
+        logger.info(f"Processing complete. Final data saved to {input_csv_path}")
         input_df.to_csv(input_csv_path, index=False)
-
-        logger.info(f"Successfully written output to {output_csv_path}")
 
     except Exception as e:
         logger.error(f"An error occurred in the main function: {e}")
