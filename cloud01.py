@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import requests
 import re
 import pandas as pd
@@ -11,6 +12,18 @@ from datetime import datetime, timedelta
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Function to commit and push changes
+def git_commit_and_push(file_paths, message):
+    try:
+        subprocess.run(["git", "config", "--local", "user.email", "action@github.com"], check=True)
+        subprocess.run(["git", "config", "--local", "user.name", "GitHub Action"], check=True)
+        subprocess.run(["git", "add"] + file_paths, check=True)
+        subprocess.run(["git", "commit", "-m", message], check=True)
+        subprocess.run(["git", "push"], check=True)
+        logger.info(f"Committed and pushed changes: {file_paths}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to commit and push changes: {e}")
 
 # Define the retry session function
 def requests_retry_session(retries=3, backoff_factor=0.3, status_forcelist=(500, 502, 504), session=None):
@@ -99,11 +112,6 @@ def main():
     try:
         logger.info(f"Current working directory: {os.getcwd()}")
 
-        # Test if we can create a file
-        with open('test_output.txt', 'w') as f:
-            f.write("Test write to ensure permissions and path are correct.")
-        logger.info("Created test_output.txt as a permissions check.")
-
         input_csv_path = 'input1.csv'
         output_csv_path = 'output1.csv'
         start_time = datetime.now()
@@ -127,12 +135,14 @@ def main():
             logger.info(f"Creating {output_csv_path} as it does not exist.")
             output_df = pd.DataFrame(columns=input_df.columns)
             output_df.to_csv(output_csv_path, index=False)
+            git_commit_and_push([output_csv_path], "Initial creation of output1.csv")
 
         for index, row in input_df.iterrows():
             # Check if the maximum runtime has been reached
             if datetime.now() - start_time > max_runtime:
                 logger.info("Maximum runtime reached. Saving progress and exiting...")
                 input_df.to_csv(input_csv_path, index=False)
+                git_commit_and_push([input_csv_path, output_csv_path], "Saving progress before exiting due to time limit")
                 return
 
             if row['Status'] == 'Done':
@@ -155,12 +165,12 @@ def main():
                     output_row.to_frame().T.to_csv(output_csv_path, mode='a', header=False, index=False)
                     logger.info(f"Appended data to {output_csv_path} for {username}.")
 
+                    # Save and push changes after each row
+                    input_df.to_csv(input_csv_path, index=False)
+                    git_commit_and_push([input_csv_path, output_csv_path], f"Updated input1.csv and output1.csv with data for {username}")
+
                 else:
                     logger.info(f"No email found for {username}")
-
-                # Save the progress immediately after each row
-                logger.info(f"Updating {input_csv_path} with the latest data.")
-                input_df.to_csv(input_csv_path, index=False)
 
             except Exception as e:
                 logger.error(f"An error occurred while processing {profile_url}: {e}")
@@ -169,6 +179,7 @@ def main():
         # Final save after loop completion
         logger.info(f"Processing complete. Final data saved to {input_csv_path}")
         input_df.to_csv(input_csv_path, index=False)
+        git_commit_and_push([input_csv_path, output_csv_path], "Final update to input1.csv and output1.csv after processing completion")
 
     except Exception as e:
         logger.error(f"An error occurred in the main function: {e}")
