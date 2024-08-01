@@ -2,7 +2,7 @@ name: Run GitHub Email Scraper
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Adjust this to your desired schedule
+    - cron: '0 */6 * * *' # Running everh 6h
   workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
