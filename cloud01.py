@@ -137,6 +137,8 @@ def main():
             output_df.to_csv(output_csv_path, index=False)
             git_commit_and_push([output_csv_path], "Initial creation of output1.csv")
 
+        email_count = 0  # Counter for successful email fetches
+
         for index, row in input_df.iterrows():
             # Check if the maximum runtime has been reached
             if datetime.now() - start_time > max_runtime:
@@ -165,9 +167,12 @@ def main():
                     output_row.to_frame().T.to_csv(output_csv_path, mode='a', header=False, index=False)
                     logger.info(f"Appended data to {output_csv_path} for {username}.")
 
-                    # Save and push changes after each row
-                    input_df.to_csv(input_csv_path, index=False)
-                    git_commit_and_push([input_csv_path, output_csv_path], f"Updated input1.csv and output1.csv with data for {username}")
+                    email_count += 1  # Increment email count
+
+                    if email_count % 100 == 0:
+                        # Save and push changes every 100 emails
+                        input_df.to_csv(input_csv_path, index=False)
+                        git_commit_and_push([input_csv_path, output_csv_path], f"Updated input1.csv and output1.csv with data for {username}")
 
                 else:
                     logger.info(f"No email found for {username}")
