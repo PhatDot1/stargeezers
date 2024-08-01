@@ -2,8 +2,8 @@ name: Run GitHub Email Scraper
 
 on:
   schedule:
-    - cron: '0 0 1 1 *'
-  workflow_dispatch:
+    - cron: '0 0 1 1 *'  # Schedule to run once a year on January 1st at midnight (adjust as needed)
+  workflow_dispatch:  # Allows manual triggering of the workflow
 
 jobs:
   run-script:
@@ -23,25 +23,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests pandas
 
-      - name: Debug environment
-        run: |
-          env
-          python -V
-
-      - name: Run cloud01.py
+      - name: Run Python Script
         env:
           MY_GITHUB_API_KEYS: ${{ secrets.MY_GITHUB_API_KEYS }}
         run: |
           python cloud01.py
 
-      - name: Run cloud02.py
-        env:
-          MY_GITHUB_API_KEYS: ${{ secrets.MY_GITHUB_API_KEYS }}
+      - name: Push changes back to repository
+        if: always()
         run: |
-          python cloud02.py
-
-      - name: Run cloud03.py
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add input1.csv output1.csv
+          git commit -m "Automated update of input1.csv and output1.csv"
+          git push
         env:
-          MY_GITHUB_API_KEYS: ${{ secrets.MY_GITHUB_API_KEYS }}
-        run: |
-          python cloud03.py
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
